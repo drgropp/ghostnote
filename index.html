@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ghostnote</title>
+    <style>
+        /* GHOSTNOTE 1.0 - "THE SOVEREIGN LAYER" */
+        :root { 
+            --bg-r: 10; --bg-g: 10; --bg-b: 10; 
+            --bg-alpha: 1;
+            --text-alpha: 1;
+            --accent: #4cc9f0; /* Ghost Cyan */
+            --ui: #333; 
+            --fs: 18px; 
+            --ff: 'Courier New', monospace; 
+        }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: rgba(var(--bg-r), var(--bg-g), var(--bg-b), var(--bg-alpha));
+            overflow: hidden; font-family: var(--ff); 
+            transition: background-color 0.3s ease;
+        }
+
+        #container { position: relative; width: 100%; height: 100%; }
+        
+        /* LAYER 1: DRAWING */
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; touch-action: none; cursor: crosshair; }
+
+        /* LAYER 2: TEXT */
+        textarea {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: transparent; border: none; outline: none;
+            color: rgba(209, 209, 209, var(--text-alpha)); 
+            font-size: var(--fs); font-family: inherit; padding: 50px 15%; z-index: 2;
+            resize: none; line-height: 1.6; box-sizing: border-box;
+            transition: color 0.2s ease;
+        }
+
+        /* HUD UI */
+        #ui-bar { position: fixed; top: 15px; right: 25px; z-index: 100; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; pointer-events: none; }
+        .btn { pointer-events: auto; background: rgba(20, 20, 20, 0.6); border: 1px solid var(--ui); color: #888; padding: 10px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; text-transform: uppercase; backdrop-filter: blur(2px); transition: all 0.2s; }
+        .btn:hover { border-color: var(--accent); color: #fff; }
+        .active { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(76, 201, 240, 0.15); }
+        
+        #hint { position: fixed; bottom: 15px; right: 25px; color: #444; font-size: 12px; z-index: 100; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; }
+        #hint:hover { opacity: 1; color: var(--accent); }
+        
+        /* COMMAND BAR */
+        #cmd { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; z-index: 101; background: #111; border: 1px solid #444; color: var(--accent); padding: 15px; display: none; outline: none; font-family: monospace; box-shadow: 0 0 20px rgba(0,0,0,0.8); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="ui-bar">
+        <div id="btn-text" class="btn active" onclick="setMode('text')">Type</div>
+        <div id="btn-draw" class="btn" onclick="setMode('draw')">Draw</div>
+        <div id="btn-erase" class="btn" onclick="setMode('erase')">Erase</div>
+        <div id="btn-save" class="btn" onclick="exportImage()">Save</div>
+    </div>
+    <div id="hint" onclick="openCmd()">[:]</div>
+    
+    <div id="container">
+        <canvas id="paintCanvas"></canvas>
+        <textarea id="noteArea" spellcheck="false" placeholder="begin"></textarea>
+    </div>
+    
+    <input type="text" id="cmd" placeholder="Try: :red, :ink blue, :weight 5, :ghost 50">
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        const noteArea = document.getElementById('noteArea');
+        const cmdInput = document.getElementById('cmd');
+        
+        let isDrawing = false, mode = 'text', lastX = 0, lastY = 0;
+        let penColor = '#4cc9f0'; 
+        let penAlpha = 1;         
+        let penWeight = 2.5;
+        
+        const colors = { 
+            red: '#ff4b2b', orange: '#ff9068', yellow: '#fbc531', 
+            green: '#00ff41', blue: '#4cc9f0', purple: '#9c88ff', 
+            white: '#ffffff', gray: '#888888', black: '#000000' 
+        };
+
+        function resize() {
+            const data = canvas.toDataURL();
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const img = new Image();
+            img.onload = () => ctx.drawImage(img, 0, 0);
+            img.src = data;
+        }
+        window.onresize = resize;
+        resize();
+
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + m).classList.add('active');
+            noteArea.style.pointerEvents = (m === 'text') ? 'auto' : 'none';
+            if(m === 'text') noteArea.focus(); else document.activeElement.blur();
+        }
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+            const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        const start = (e) => {
+            if (mode === 'text' || cmdInput.style.display === 'block') return;
+            isDrawing = true;
+            const { x, y } = getPos(e);
+            lastX = x; lastY = y;
+        }
+
+        const drawLine = (e) => {
+            if (!isDrawing || mode === 'text') return;
+            if (e.touches) e.preventDefault(); 
+            
+            const { x, y } = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.lineCap = 'round';
+
+            if (mode === 'erase') {
+                ctx.globalCompositeOperation = 'destination-out'; 
+                ctx.lineWidth = penWeight * 15;
+                ctx.globalAlpha = 1;
+            } else {
+                ctx.globalCompositeOperation = 'source-over'; 
+                ctx.strokeStyle = penColor;
+                ctx.lineWidth = penWeight;
+                ctx.globalAlpha = penAlpha;
+            }
+            
+            ctx.stroke();
+            lastX = x; lastY = y;
+        }
+
+        const end = () => { isDrawing = false; saveLocal(); }
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', drawLine);
+        window.addEventListener('mouseup', end);
+        canvas.addEventListener('touchstart', start, {passive: false});
+        canvas.addEventListener('touchmove', drawLine, {passive: false});
+        canvas.addEventListener('touchend', end);
+
+        function openCmd() { cmdInput.style.display = 'block'; cmdInput.focus(); }
+
+        function exportImage() {
+            const off = document.createElement('canvas'); 
+            off.width = canvas.width; off.height = canvas.height;
+            const oCtx = off.getContext('2d'); 
+            oCtx.fillStyle = '#0a0a0a'; 
+            oCtx.fillRect(0,0,off.width,off.height);
+            oCtx.drawImage(canvas, 0, 0); 
+            oCtx.fillStyle = getComputedStyle(noteArea).color;
+            const size = getComputedStyle(noteArea).fontSize; 
+            oCtx.font = size + " " + getComputedStyle(noteArea).fontFamily;
+            const xOffset = off.width * 0.15; 
+            const maxWidth = off.width * 0.70;
+            const lines = noteArea.value.split('\n');
+            const lineHeight = parseInt(size) * 1.6;
+            lines.forEach((line, i) => oCtx.fillText(line, xOffset, 50 + 18 + (i * lineHeight), maxWidth));
+            const link = document.createElement('a'); link.download = 'ghostnote.png'; link.href = off.toDataURL(); link.click();
+        }
+
+        function saveLocal() {
+            localStorage.setItem('gn-note', noteArea.value);
+            localStorage.setItem('gn-draw', canvas.toDataURL());
+            localStorage.setItem('gn-pen-c', penColor);
+            localStorage.setItem('gn-pen-a', penAlpha);
+            localStorage.setItem('gn-pen-w', penWeight);
+            localStorage.setItem('gn-txt-c', noteArea.style.color);
+            localStorage.setItem('gn-txt-s', noteArea.style.fontSize);
+            localStorage.setItem('gn-bg-a', document.documentElement.style.getPropertyValue('--bg-alpha'));
+            localStorage.setItem('gn-txt-a', document.documentElement.style.getPropertyValue('--text-alpha'));
+        }
+
+        noteArea.addEventListener('input', saveLocal);
+        
+        function loadData() {
+            noteArea.value = localStorage.getItem('gn-note') || "";
+            const savedDraw = localStorage.getItem('gn-draw');
+            if (savedDraw) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0); img.src = savedDraw; }
+            const bgA = localStorage.getItem('gn-bg-a');
+            if(bgA) document.documentElement.style.setProperty('--bg-alpha', bgA);
+            const txtA = localStorage.getItem('gn-txt-a');
+            if(txtA) document.documentElement.style.setProperty('--text-alpha', txtA);
+            noteArea.style.color = localStorage.getItem('gn-txt-c') || "";
+            noteArea.style.fontSize = localStorage.getItem('gn-txt-s') || "18px";
+            penColor = localStorage.getItem('gn-pen-c') || '#4cc9f0';
+            penAlpha = parseFloat(localStorage.getItem('gn-pen-a')) || 1;
+            penWeight = parseFloat(localStorage.getItem('gn-pen-w')) || 2.5;
+        }
+        loadData();
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ':') { e.preventDefault(); openCmd(); }
+            if (e.key === 'Escape') { cmdInput.style.display = 'none'; setMode(mode); }
+            if (e.key === 'Enter' && document.activeElement.id === 'cmd') {
+                const val = cmdInput.value.trim().toLowerCase().replace(':', '');
+                
+                if (val === 'wipe') { ctx.clearRect(0,0,canvas.width,canvas.height); noteArea.value=""; localStorage.clear(); }
+                else if (colors[val]) { noteArea.style.color = colors[val]; }
+                else if (val.startsWith('ink ')) { penColor = colors[val.replace('ink ', '')] || val.replace('ink ', ''); }
+                else if (val.startsWith('weight ')) { penWeight = parseFloat(val.replace('weight ', '')); }
+                else if (val.startsWith('size ')) { noteArea.style.fontSize = val.replace('size ', '') + 'px'; }
+                else if (val.startsWith('ghost ')) { 
+                    const num = parseInt(val.replace('ghost ', '')) / 100;
+                    if(!isNaN(num)) document.documentElement.style.setProperty('--bg-alpha', Math.max(0.05, Math.min(1, num)));
+                }
+                else if (val.startsWith('text ')) {
+                    const num = parseInt(val.replace('text ', '')) / 100;
+                    if(!isNaN(num)) document.documentElement.style.setProperty('--text-alpha', Math.max(0.1, Math.min(1, num)));
+                }
+                else if (val.startsWith('pen ')) {
+                    const num = parseInt(val.replace('pen ', '')) / 100;
+                    if(!isNaN(num)) penAlpha = Math.max(0.1, Math.min(1, num));
+                }
+                
+                saveLocal(); cmdInput.style.display = 'none'; cmdInput.value = ""; setMode(mode);
+            }
+        });
+    </script>
+</body>
+</html>
