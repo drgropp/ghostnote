@@ -65,7 +65,7 @@
         <textarea id="noteArea" spellcheck="false" placeholder="begin"></textarea>
     </div>
     
-    <input type="text" id="cmd" placeholder="Try: :red, :ink blue, :weight 5, :ghost 50">
+    <input type="text" id="cmd" placeholder="Try: :red, :ink blue, :weight 5, :eraser 20, :wipe">
 
     <script>
         const canvas = document.getElementById('paintCanvas');
@@ -77,6 +77,7 @@
         let penColor = '#4cc9f0'; 
         let penAlpha = 1;         
         let penWeight = 2.5;
+        let eraserWeight = 20;
         
         const colors = { 
             red: '#ff4b2b', orange: '#ff9068', yellow: '#fbc531', 
@@ -129,7 +130,7 @@
 
             if (mode === 'erase') {
                 ctx.globalCompositeOperation = 'destination-out'; 
-                ctx.lineWidth = penWeight * 15;
+                ctx.lineWidth = eraserWeight;
                 ctx.globalAlpha = 1;
             } else {
                 ctx.globalCompositeOperation = 'source-over'; 
@@ -177,6 +178,7 @@
             localStorage.setItem('gn-pen-c', penColor);
             localStorage.setItem('gn-pen-a', penAlpha);
             localStorage.setItem('gn-pen-w', penWeight);
+            localStorage.setItem('gn-eraser-w', eraserWeight);
             localStorage.setItem('gn-txt-c', noteArea.style.color);
             localStorage.setItem('gn-txt-s', noteArea.style.fontSize);
             localStorage.setItem('gn-bg-a', document.documentElement.style.getPropertyValue('--bg-alpha'));
@@ -198,6 +200,7 @@
             penColor = localStorage.getItem('gn-pen-c') || '#4cc9f0';
             penAlpha = parseFloat(localStorage.getItem('gn-pen-a')) || 1;
             penWeight = parseFloat(localStorage.getItem('gn-pen-w')) || 2.5;
+            eraserWeight = parseFloat(localStorage.getItem('gn-eraser-w')) || 20;
         }
         loadData();
 
@@ -207,10 +210,15 @@
             if (e.key === 'Enter' && document.activeElement.id === 'cmd') {
                 const val = cmdInput.value.trim().toLowerCase().replace(':', '');
                 
-                if (val === 'wipe') { ctx.clearRect(0,0,canvas.width,canvas.height); noteArea.value=""; localStorage.clear(); }
+                if (val === 'wipe' || val === 'clear' || val === 'reset') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    noteArea.value = "";
+                    localStorage.clear();
+                }
                 else if (colors[val]) { noteArea.style.color = colors[val]; }
                 else if (val.startsWith('ink ')) { penColor = colors[val.replace('ink ', '')] || val.replace('ink ', ''); }
                 else if (val.startsWith('weight ')) { penWeight = parseFloat(val.replace('weight ', '')); }
+                else if (val.startsWith('eraser ')) { eraserWeight = parseFloat(val.replace('eraser ', '')); }
                 else if (val.startsWith('size ')) { noteArea.style.fontSize = val.replace('size ', '') + 'px'; }
                 else if (val.startsWith('ghost ')) { 
                     const num = parseInt(val.replace('ghost ', '')) / 100;
