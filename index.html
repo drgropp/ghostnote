@@ -40,7 +40,7 @@
 
         /* HUD UI */
         #ui-bar { position: fixed; top: 15px; right: 25px; z-index: 100; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; pointer-events: none; }
-        .btn { pointer-events: auto; background: rgba(20, 20, 20, 0.6); border: 1px solid var(--ui); color: #888; padding: 10px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; text-transform: uppercase; backdrop-filter: blur(2px); transition: all 0.2s; }
+        .btn { pointer-events: auto; background: rgba(20, 20, 20, 0.6); border: 1px solid var(--ui); color: #888; padding: 10px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease; }
         .btn:hover { border-color: var(--accent); color: #fff; }
         .active { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(76, 201, 240, 0.15); }
         
@@ -48,7 +48,7 @@
         #hint:hover { opacity: 1; color: var(--accent); }
         
         /* COMMAND BAR */
-        #cmd { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; z-index: 101; background: #111; border: 1px solid #444; color: var(--accent); padding: 15px; display: none; outline: none; font-family: monospace; box-shadow: 0 0 20px rgba(0,0,0,0.8); border-radius: 4px; }
+        #cmd { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; z-index: 101; background: #111; border: 1px solid #444; color: var(--accent); padding: 12px 15px; font-size: 12px; font-family: inherit; outline: none; display: none; box-shadow: 0 0 20px rgba(76, 201, 240, 0.1); }
     </style>
 </head>
 <body>
@@ -65,7 +65,7 @@
         <textarea id="noteArea" spellcheck="false" placeholder="begin"></textarea>
     </div>
     
-    <input type="text" id="cmd" placeholder="Try: :red, :ink blue, :weight 5, :eraser 20, :wipe">
+    <input type="text" id="cmd" placeholder="Try: :text red, :ink blue, :weight 5, :eraser 20, :wipe">
 
     <script>
         const canvas = document.getElementById('paintCanvas');
@@ -215,7 +215,10 @@
                     noteArea.value = "";
                     localStorage.clear();
                 }
-                else if (colors[val]) { noteArea.style.color = colors[val]; }
+                else if (val.startsWith('text ')) { 
+                    const colorName = val.replace('text ', '');
+                    noteArea.style.color = colors[colorName] || colorName; 
+                }
                 else if (val.startsWith('ink ')) { penColor = colors[val.replace('ink ', '')] || val.replace('ink ', ''); }
                 else if (val.startsWith('weight ')) { penWeight = parseFloat(val.replace('weight ', '')); }
                 else if (val.startsWith('eraser ')) { eraserWeight = parseFloat(val.replace('eraser ', '')); }
