@@ -177,11 +177,6 @@
                 <div class="help-line"><span class="cmd">:ghost [0-100]</span><span class="desc">Background opacity</span></div>
                 <div class="help-line"><span class="cmd">:wipe / :clear / :reset</span><span class="desc">Clear all</span></div>
                 <div class="help-line"><span class="cmd">:help / :?</span><span class="desc">Show this menu</span></div>
-                if (cmd === 'erase' || cmd === 'eraser') {
-    setMode('erase');
-}
-                if (cmd === 'draw') setMode('draw');
-if (cmd === 'type' || cmd === 'text') setMode('text');
                 
             </div>
             <div class="help-footer">ESC to close • Click outside to dismiss</div>
@@ -418,6 +413,12 @@ if (cmd === 'type' || cmd === 'text') setMode('text');
                         document.documentElement.style.setProperty('--bg-alpha', Math.max(0.05, Math.min(1, num)));
                         saveLocal();
                         commandExecuted = true;
+
+                        if (cmd === 'erase' || cmd === 'eraser') {
+    setMode('erase');
+}
+                        if (cmd === 'draw') setMode('draw');
+if (cmd === 'type' || cmd === 'text') setMode('text');
                     }
                 }
                 
