@@ -17,15 +17,6 @@ A terminal user interface for browsing, editing, and managing notes without leav
 ### GhostNote Web
 A lightweight web version for viewing and managing notes in the browser.
 
-### Future Ideas
-- Pin and unpin notes
-- Command suggestions
-- Project dashboards
-- Local AI summaries
-- Sponsor-only experiments
-- Sync options
-- Plugins and extensions
-
 ## Current Status
 
 GhostNote is early but actively being developed.
