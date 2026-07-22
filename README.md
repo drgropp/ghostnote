@@ -38,11 +38,9 @@ No unnecessary clutter. No giant productivity system. Just tools that help you k
 
 ## Repositories
 
-- `ghostnote-cli` — command-line version
-- `ghostnote-tui` — terminal UI version
-- `ghostnote-web` — web version
-
-Links will be added as each part becomes ready.
+- https://github.com/drgropp/ghostnote-cli — command-line version
+- https://github.com/drgropp/ghostnote-tui — terminal UI version
+- https://github.com/drgropp/ghostnote-web/blob/main/README.md — web version
 
 ## License
 
