@@ -40,7 +40,7 @@ No unnecessary clutter. No giant productivity system. Just tools that help you k
 
 - https://github.com/drgropp/ghostnote-cli — command-line version
 - https://github.com/drgropp/ghostnote-tui — terminal UI version
-- https://github.com/drgropp/ghostnote-web/blob/main/README.md — web version
+- https://github.com/drgropp/ghostnote-web — web version
 
 ## License
 
